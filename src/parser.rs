@@ -1,8 +1,8 @@
-use nom::{IResult};
-use nom::sequence::{tuple, terminated};
-use nom::combinator::{map_res};
-use nom::bytes::complete::{take_while1, take_while_m_n, tag};
-use nom::multi::{separated_list1, many_m_n};
+use nom::bytes::complete::{tag, take_while1, take_while_m_n};
+use nom::combinator::map_res;
+use nom::multi::{many_m_n, separated_list1};
+use nom::sequence::{terminated, tuple};
+use nom::IResult;
 
 pub(crate) type N = usize;
 
@@ -30,36 +30,43 @@ pub(crate) struct Input {
 
 #[derive(Debug, Eq, PartialEq)]
 pub(crate) struct Output {
-    pub waves: Vec<Vec<N>>
+    pub waves: Vec<Vec<N>>,
 }
 
-
 fn number(input: &str) -> IResult<&str, &str> {
-    take_while1(|c:char| c.is_digit(10))(input)
+    take_while1(|c: char| c.is_digit(10))(input)
 }
 
 fn single_space(input: &str) -> IResult<&str, &str> {
-    take_while_m_n(1, 1, |c:char| c == ' ')(input)
+    take_while_m_n(1, 1, |c: char| c == ' ')(input)
 }
 
 fn positive_number(input: &str) -> IResult<&str, N> {
-    map_res(number,
-        |out| N::from_str_radix(out, 10)
-    )(input)
+    map_res(number, |out| N::from_str_radix(out, 10))(input)
 }
 
 fn header(input: &str) -> IResult<&str, Header> {
     // tuple takes as argument a tuple of parsers and will return
     // a tuple of their results
-    let (i, (units, _, towers, _, waves, _, budget)) =
-        tuple((positive_number, single_space, positive_number, single_space, positive_number, single_space, positive_number))(input)?;
+    let (i, (units, _, towers, _, waves, _, budget)) = tuple((
+        positive_number,
+        single_space,
+        positive_number,
+        single_space,
+        positive_number,
+        single_space,
+        positive_number,
+    ))(input)?;
 
-    Ok((i, Header {
-        units,
-        towers,
-        waves,
-        budget,
-    }))
+    Ok((
+        i,
+        Header {
+            units,
+            towers,
+            waves,
+            budget,
+        },
+    ))
 }
 
 fn header_line(s: &str) -> IResult<&str, Header> {
@@ -84,12 +91,15 @@ fn parse_input_body<'a>(s: &'a str, header: &Header) -> IResult<&'a str, Body> {
     println!("parsing waves");
     let (out, waves) = separated_list1(tag("\n"), number_list)(out)?;
     println!("done parsing waves");
-    Ok((out, Body {
-        hits,
-        waves,
-        bonus,
-        costs,
-    }))
+    Ok((
+        out,
+        Body {
+            hits,
+            waves,
+            bonus,
+            costs,
+        },
+    ))
 }
 
 pub(crate) fn parse_input(s: &str) -> IResult<&str, Input> {
@@ -99,26 +109,25 @@ pub(crate) fn parse_input(s: &str) -> IResult<&str, Input> {
     println!("parsing input body");
     let (out, body) = parse_input_body(out, &header)?;
     println!("done parsing input body");
-    Ok((out, Input {
-        header, body,
-    }))
+    Ok((out, Input { header, body }))
 }
 
 pub(crate) fn parse_output(s: &str) -> IResult<&str, Output> {
     let (out, waves) = separated_list1(tag("\n"), number_list)(s)?;
-    Ok((out, Output {
-        waves
-    }))
+    Ok((out, Output { waves }))
 }
 
 #[cfg(test)]
 mod tests {
 
-    use crate::parser::{number, positive_number, header, Header, number_list, number_list_line, parse_input_body, Body, Input, parse_input, parse_output, Output};
-    use nom::error::{ErrorKind, Error};
-    use nom::Err;
-    use nom::multi::separated_list1;
+    use crate::parser::{
+        header, number, number_list, number_list_line, parse_input, parse_input_body, parse_output,
+        positive_number, Body, Header, Input, Output,
+    };
     use nom::bytes::complete::tag;
+    use nom::error::{Error, ErrorKind};
+    use nom::multi::separated_list1;
+    use nom::Err;
 
     #[test]
     fn test_number_1() {
@@ -135,7 +144,13 @@ mod tests {
     #[test]
     fn test_number_ko() {
         let r = number("not a number");
-        assert_eq!(r, Err(Err::Error(Error::new("not a number", ErrorKind::TakeWhile1))))
+        assert_eq!(
+            r,
+            Err(Err::Error(Error::new(
+                "not a number",
+                ErrorKind::TakeWhile1
+            )))
+        )
     }
 
     #[test]
@@ -147,7 +162,18 @@ mod tests {
     #[test]
     fn test_header() {
         let h = header("42 43 44 45");
-        assert_eq!(h, Ok(("", Header{ units: 42, towers: 43, waves: 44, budget: 45 })))
+        assert_eq!(
+            h,
+            Ok((
+                "",
+                Header {
+                    units: 42,
+                    towers: 43,
+                    waves: 44,
+                    budget: 45
+                }
+            ))
+        )
     }
 
     #[test]
@@ -168,7 +194,7 @@ mod tests {
             units: 2,
             towers: 2,
             waves: 3,
-            budget: 4
+            budget: 4,
         };
         let text = "\
         0 1\n\
@@ -179,12 +205,18 @@ mod tests {
         2 2\n\
         3 3";
         let body = parse_input_body(text, &header);
-        assert_eq!(body, Ok(("", Body {
-            hits: vec![vec![0, 1], vec![1, 0]],
-            waves: vec![vec![1, 1], vec![2, 2], vec![3, 3]],
-            bonus: vec![1, 2, 3],
-            costs: vec![2, 2]
-        })))
+        assert_eq!(
+            body,
+            Ok((
+                "",
+                Body {
+                    hits: vec![vec![0, 1], vec![1, 0]],
+                    waves: vec![vec![1, 1], vec![2, 2], vec![3, 3]],
+                    bonus: vec![1, 2, 3],
+                    costs: vec![2, 2]
+                }
+            ))
+        )
     }
 
     #[test]
@@ -208,13 +240,19 @@ mod tests {
             hits: vec![vec![0, 1], vec![1, 0]],
             waves: vec![vec![1, 1], vec![2, 2], vec![3, 3]],
             bonus: vec![1, 2, 3],
-            costs: vec![2, 2]
+            costs: vec![2, 2],
         };
         let body = parse_input(text);
-        assert_eq!(body, Ok(("", Input {
-            header: expected_header,
-            body: expected_body
-        })))
+        assert_eq!(
+            body,
+            Ok((
+                "",
+                Input {
+                    header: expected_header,
+                    body: expected_body
+                }
+            ))
+        )
     }
 
     #[test]
@@ -235,27 +273,49 @@ mod tests {
             hits: vec![vec![1]],
             waves: vec![vec![1]],
             bonus: vec![3],
-            costs: vec![1]
+            costs: vec![1],
         };
         let body = parse_input(text);
-        assert_eq!(body, Ok(("", Input {
-            header: expected_header,
-            body: expected_body
-        })))
+        assert_eq!(
+            body,
+            Ok((
+                "",
+                Input {
+                    header: expected_header,
+                    body: expected_body
+                }
+            ))
+        )
     }
 
     #[test]
     fn test_parse_output_with_newline() {
         let text = "1\n";
         let output = parse_output(&text);
-        assert_eq!(output, Ok(("\n", Output{ waves: vec![vec![1]] })))
+        assert_eq!(
+            output,
+            Ok((
+                "\n",
+                Output {
+                    waves: vec![vec![1]]
+                }
+            ))
+        )
     }
 
     #[test]
     fn test_parse_output_without_newline() {
         let text = "1";
         let output = parse_output(&text);
-        assert_eq!(output, Ok(("", Output{ waves: vec![vec![1]] })))
+        assert_eq!(
+            output,
+            Ok((
+                "",
+                Output {
+                    waves: vec![vec![1]]
+                }
+            ))
+        )
     }
 
     #[test]
