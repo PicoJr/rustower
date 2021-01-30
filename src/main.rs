@@ -110,18 +110,25 @@ fn main() -> anyhow::Result<()> {
     let output_path = matches.value_of("output").unwrap();
     let output_data = fs::read_to_string(output_path).expect("Unable to read output file");
 
-    let (_out, input) = parse_input(&input_data).unwrap();
-    let (_out, output) = parse_output(&output_data).unwrap();
-
-    match validate_output(&input, &output) {
-        Err(errors) => {
-            for error in errors {
-                eprintln!("error: {}", error)
+    let input_parsing = parse_input(&input_data);
+    let output_parsing = parse_output(&output_data);
+    match (&input_parsing, &output_parsing) {
+        (Ok((_, input)), Ok((_, output))) => {
+            match validate_output(&input, &output) {
+                Err(errors) => {
+                    for error in errors {
+                        eprintln!("error: {}", error)
+                    }
+                }
+                Ok(()) => {
+                    let score = score(&input, &output);
+                    println!("score: {}", score)
+                }
             }
         }
-        Ok(()) => {
-            let score = score(&input, &output);
-            println!("score: {}", score)
+        _ => {
+            eprintln!("input: {:?}", input_parsing);
+            eprintln!("output: {:?}", output_parsing);
         }
     }
     Ok(())
