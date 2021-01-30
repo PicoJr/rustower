@@ -8,3 +8,6 @@ edition = "2018"
 
 [dependencies]
 nom = "6.1.0"
+thiserror = "1.0"
+clap = "2.33.3"
+anyhow = "1.0.38"

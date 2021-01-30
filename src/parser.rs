@@ -1,24 +1,45 @@
 use nom::{IResult};
-use nom::sequence::tuple;
+use nom::sequence::{tuple, terminated};
 use nom::combinator::{map_res};
-use nom::bytes::complete::{take_while1, take_while_m_n};
+use nom::bytes::complete::{take_while1, take_while_m_n, tag};
+use nom::multi::{separated_list1, many_m_n};
 
-type N = usize;
+pub(crate) type N = usize;
 
 #[derive(Debug, Eq, PartialEq)]
-struct Header {
-    units: N,
-    towers: N,
-    waves: N,
-    budget: N,
+pub(crate) struct Header {
+    pub units: N,
+    pub towers: N,
+    pub waves: N,
+    pub budget: N,
 }
+
+#[derive(Debug, Eq, PartialEq)]
+pub(crate) struct Body {
+    pub hits: Vec<Vec<N>>,
+    pub waves: Vec<Vec<N>>,
+    pub bonus: Vec<N>,
+    pub costs: Vec<N>,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub(crate) struct Input {
+    pub header: Header,
+    pub body: Body,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub(crate) struct Output {
+    pub waves: Vec<Vec<N>>
+}
+
 
 fn number(input: &str) -> IResult<&str, &str> {
     take_while1(|c:char| c.is_digit(10))(input)
 }
 
 fn single_space(input: &str) -> IResult<&str, &str> {
-    take_while_m_n(1, 1, |c:char| c.is_ascii_whitespace())(input)
+    take_while_m_n(1, 1, |c:char| c == ' ')(input)
 }
 
 fn positive_number(input: &str) -> IResult<&str, N> {
@@ -41,12 +62,63 @@ fn header(input: &str) -> IResult<&str, Header> {
     }))
 }
 
+fn header_line(s: &str) -> IResult<&str, Header> {
+    terminated(header, tag("\n"))(s)
+}
+
+fn number_list(s: &str) -> IResult<&str, Vec<N>> {
+    separated_list1(single_space, positive_number)(s)
+}
+
+fn number_list_line(s: &str) -> IResult<&str, Vec<N>> {
+    terminated(number_list, tag("\n"))(s)
+}
+
+fn parse_input_body<'a>(s: &'a str, header: &Header) -> IResult<&'a str, Body> {
+    println!("parsing hits");
+    let (out, hits) = many_m_n(header.units, header.units, number_list_line)(s)?;
+    println!("parsing costs");
+    let (out, costs) = number_list_line(out)?;
+    println!("parsing bonus");
+    let (out, bonus) = number_list_line(out)?;
+    println!("parsing waves");
+    let (out, waves) = separated_list1(tag("\n"), number_list)(out)?;
+    println!("done parsing waves");
+    Ok((out, Body {
+        hits,
+        waves,
+        bonus,
+        costs,
+    }))
+}
+
+pub(crate) fn parse_input(s: &str) -> IResult<&str, Input> {
+    println!("parsing header");
+    let (out, header) = header_line(s)?;
+    println!("header: {:?}", header);
+    println!("parsing input body");
+    let (out, body) = parse_input_body(out, &header)?;
+    println!("done parsing input body");
+    Ok((out, Input {
+        header, body,
+    }))
+}
+
+pub(crate) fn parse_output(s: &str) -> IResult<&str, Output> {
+    let (out, waves) = separated_list1(tag("\n"), number_list)(s)?;
+    Ok((out, Output {
+        waves
+    }))
+}
+
 #[cfg(test)]
 mod tests {
 
-    use crate::parser::{number, positive_number, header, Header};
+    use crate::parser::{number, positive_number, header, Header, number_list, number_list_line, parse_input_body, Body, Input, parse_input, parse_output, Output};
     use nom::error::{ErrorKind, Error};
     use nom::Err;
+    use nom::multi::separated_list1;
+    use nom::bytes::complete::tag;
 
     #[test]
     fn test_number_1() {
@@ -78,4 +150,132 @@ mod tests {
         assert_eq!(h, Ok(("", Header{ units: 42, towers: 43, waves: 44, budget: 45 })))
     }
 
+    #[test]
+    fn test_number_list() {
+        let nbl = number_list("42 43 44");
+        assert_eq!(nbl, Ok(("", vec![42, 43, 44])))
+    }
+
+    #[test]
+    fn test_number_list_line() {
+        let nbl = number_list_line("42 43 44\n");
+        assert_eq!(nbl, Ok(("", vec![42, 43, 44])))
+    }
+
+    #[test]
+    fn test_parse_input_body() {
+        let header = Header {
+            units: 2,
+            towers: 2,
+            waves: 3,
+            budget: 4
+        };
+        let text = "\
+        0 1\n\
+        1 0\n\
+        2 2\n\
+        1 2 3\n\
+        1 1\n\
+        2 2\n\
+        3 3";
+        let body = parse_input_body(text, &header);
+        assert_eq!(body, Ok(("", Body {
+            hits: vec![vec![0, 1], vec![1, 0]],
+            waves: vec![vec![1, 1], vec![2, 2], vec![3, 3]],
+            bonus: vec![1, 2, 3],
+            costs: vec![2, 2]
+        })))
+    }
+
+    #[test]
+    fn test_parse_input_2() {
+        let text = "\
+        2 2 3 4\n\
+        0 1\n\
+        1 0\n\
+        2 2\n\
+        1 2 3\n\
+        1 1\n\
+        2 2\n\
+        3 3";
+        let expected_header = Header {
+            units: 2,
+            towers: 2,
+            waves: 3,
+            budget: 4,
+        };
+        let expected_body = Body {
+            hits: vec![vec![0, 1], vec![1, 0]],
+            waves: vec![vec![1, 1], vec![2, 2], vec![3, 3]],
+            bonus: vec![1, 2, 3],
+            costs: vec![2, 2]
+        };
+        let body = parse_input(text);
+        assert_eq!(body, Ok(("", Input {
+            header: expected_header,
+            body: expected_body
+        })))
+    }
+
+    #[test]
+    fn test_parse_input_1() {
+        let text = "\
+        1 1 1 2\n\
+        1\n\
+        1\n\
+        3\n\
+        1";
+        let expected_header = Header {
+            units: 1,
+            towers: 1,
+            waves: 1,
+            budget: 2,
+        };
+        let expected_body = Body {
+            hits: vec![vec![1]],
+            waves: vec![vec![1]],
+            bonus: vec![3],
+            costs: vec![1]
+        };
+        let body = parse_input(text);
+        assert_eq!(body, Ok(("", Input {
+            header: expected_header,
+            body: expected_body
+        })))
+    }
+
+    #[test]
+    fn test_parse_output_with_newline() {
+        let text = "1\n";
+        let output = parse_output(&text);
+        assert_eq!(output, Ok(("\n", Output{ waves: vec![vec![1]] })))
+    }
+
+    #[test]
+    fn test_parse_output_without_newline() {
+        let text = "1";
+        let output = parse_output(&text);
+        assert_eq!(output, Ok(("", Output{ waves: vec![vec![1]] })))
+    }
+
+    #[test]
+    fn test_separated_without_newline() {
+        let text = "1";
+        let output = separated_list1(tag("\n"), number_list)(text);
+        assert_eq!(output, Ok(("", vec![vec![1]])))
+    }
+
+    #[test]
+    fn test_separated_with_newline() {
+        let text = "1\n";
+        let output = separated_list1(tag("\n"), number_list)(text);
+        assert_eq!(output, Ok(("\n", vec![vec![1]])))
+    }
+
+    #[test]
+    fn test_separated_without_newline_2() {
+        let text = "1\n2";
+        let output = separated_list1(tag("\n"), number_list)(text);
+        assert_eq!(output, Ok(("", vec![vec![1], vec![2]])))
+    }
 }
