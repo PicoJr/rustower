@@ -83,7 +83,7 @@ fn number_list_line(s: &str) -> IResult<&str, Vec<N>> {
 
 fn parse_input_body<'a>(s: &'a str, header: &Header) -> IResult<&'a str, Body> {
     println!("parsing hits");
-    let (out, hits) = many_m_n(header.units, header.units, number_list_line)(s)?;
+    let (out, hits) = many_m_n(header.towers, header.towers, number_list_line)(s)?;
     println!("parsing costs");
     let (out, costs) = number_list_line(out)?;
     println!("parsing bonus");
@@ -316,26 +316,5 @@ mod tests {
                 }
             ))
         )
-    }
-
-    #[test]
-    fn test_separated_without_newline() {
-        let text = "1";
-        let output = separated_list1(tag("\n"), number_list)(text);
-        assert_eq!(output, Ok(("", vec![vec![1]])))
-    }
-
-    #[test]
-    fn test_separated_with_newline() {
-        let text = "1\n";
-        let output = separated_list1(tag("\n"), number_list)(text);
-        assert_eq!(output, Ok(("\n", vec![vec![1]])))
-    }
-
-    #[test]
-    fn test_separated_without_newline_2() {
-        let text = "1\n2";
-        let output = separated_list1(tag("\n"), number_list)(text);
-        assert_eq!(output, Ok(("", vec![vec![1], vec![2]])))
     }
 }

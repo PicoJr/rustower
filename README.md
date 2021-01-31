@@ -9,11 +9,11 @@ Concept: similar to Google Hashcode qualification round.
 ```
 UNITS TOWERS WAVES BUDGET
 
-# hits required from each tower for unit 0, always > 0
-HIT_1 HIT_2 ... HIT_T
-# hits required from each tower for unit 1, always > 0
+# tower 0 effectiveness against each unit
+HIT_1 HIT_2 ... HIT_U
+# tower 1 effectiveness against each unit
 ...
-# hits required from each tower for unit U, always > 0
+# tower T effectiveness against each unit
 ...
 
 # cost for each tower

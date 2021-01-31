@@ -96,8 +96,8 @@ fn score_wave(input: &Input, wave_index: N, wave_units: &[N], wave_towers: &[N])
 }
 
 fn units_stopped(input: &Input, unit: N, tower: N, quantity: N) -> usize {
-    if let Some(hit) = input.body.hits.get(unit).and_then(|hits| hits.get(tower)) {
-        quantity / hit
+    if let Some(hit) = input.body.hits.get(tower).and_then(|hits| hits.get(unit)) {
+        quantity * hit
     } else {
         0
     }
