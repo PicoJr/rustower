@@ -124,9 +124,7 @@ mod tests {
         header, number, number_list, number_list_line, parse_input, parse_input_body, parse_output,
         positive_number, Body, Header, Input, Output,
     };
-    use nom::bytes::complete::tag;
     use nom::error::{Error, ErrorKind};
-    use nom::multi::separated_list1;
     use nom::Err;
 
     #[test]
