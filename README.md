@@ -1,19 +1,24 @@
 # Rustower
 
-Concept: similar to Google Hashcode qualification round.
+This repository contains:
+* The problem statement of a challenge inspired by [Google Hashcode](https://hashcode.withgoogle.com/).
+* Input files
+* Output validator and score-calculator reference implementation (in Rust)
 
 ## Problem Statement
+
+Compute the best towers to build in order to defend against waves of units given a budget.
 
 ### Input File
 
 ```
 UNITS TOWERS WAVES BUDGET
 
-# tower 0 effectiveness against each unit
+# how many of each unit type a single tower of type 0 can stop
 HIT_1 HIT_2 ... HIT_U
-# tower 1 effectiveness against each unit
+# how many of each unit type a single tower of type 1 can stop
 ...
-# tower T effectiveness against each unit
+# how many of each unit type a single tower of type T can stop
 ...
 
 # cost for each tower
@@ -50,4 +55,74 @@ T_1 T_2 ... T_T
 
 For each type of unit, compute how many units of this type towers can stop:
 
-`T_1 / HIT_1 + T_2 / HIT_2 + ... + T_T / HIT_T`
+* given a unit `i`
+* `T` towers
+
+The number of units of type `i` stopped is sum of `N_k * HIT_k_i` for k in `0..T-1` where
+
+* `N_k` is the number of towers of type `k`.
+* `HIT_k_i` is the number of units of type `i` a single tower of type `k` can stop/
+
+### Example
+
+#### Input File
+
+```
+2 2 2 12
+2 1
+1 2
+3 4
+2 1
+1 1
+3 3
+```
+
+> 2 UNITS, 2 TOWERS, 2 WAVES, BUDGET = 12
+>
+> 1 TOWER of type 0 can stop 2 units of type 0 and 1 unit of type 1
+>
+> 1 TOWER of type 1 can stop 1 unit of type 0 and 2 units of type 1
+>
+> TOWER 0 costs 3, TOWER 1 costs 4
+>
+> WAVE 0 bonus is 2, WAVE 1 bonus is 1
+> 
+> WAVE 0 consists of 1 unit of type 0 and 1 unit of type 1
+>
+> WAVE 1 consists of 3 unit of type 0 and 3 units of type 1
+
+#### Output File
+
+```
+1 0
+0 2
+```
+
+> WAVE 1: 1 tower of type 0 and 0 tower of type 1
+>
+> WAVE 2: 0 tower of type 0 and 2 towers of type 1
+
+total cost = 1 * 3 + 2 * 4 = 11 < 12 (BUDGET)
+
+First wave:
+* units of type 0 stopped = 1 (number of towers of type 0) * 2 + 0 (number of towers of type 1) * 1 = 2
+* units of type 1 stopped = 1 (number of towers of type 0) * 1 + 0 (number of towers of type 1) * 2 = 1
+
+All units were stopped, score = 1 + 1 (units stopped) + 2 (bonus) = 4
+
+Second wave:
+
+* units of type 0 stopped = 2 (number of towers of type 0) * 2 + 2 (number of towers of type 1) * 1 = 2
+* units of type 1 stopped = 0 (number of towers of type 0) * 1 + 2 (number of towers of type 1) * 2 = 4
+
+score = 2 + 3 (4 units of type 1 can be stopped but second wave only has 3 units of type 1) + 0 (no bonus since only 2 units of type 0 out of 3 were stopped) = 5
+
+total score = 4 + 5 = 9
+
+## Validate and Compute Score
+
+example:
+
+```
+cargo run --release -- example/input_example.txt example/output_example.txt
+```

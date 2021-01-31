@@ -10,6 +10,7 @@ extern crate clap;
 extern crate nom;
 use clap::{App, Arg};
 
+use nom::error::convert_error;
 use std::fs;
 
 fn main() -> anyhow::Result<()> {
@@ -53,8 +54,12 @@ fn main() -> anyhow::Result<()> {
             }
         },
         _ => {
-            eprintln!("input: {:?}", input_parsing);
-            eprintln!("output: {:?}", output_parsing);
+            if let Err(nom::Err::Error(e)) = input_parsing {
+                eprintln!("{}", convert_error(input_data.as_str(), e))
+            }
+            if let Err(nom::Err::Error(e)) = output_parsing {
+                eprintln!("{}", convert_error(input_data.as_str(), e))
+            }
         }
     }
     Ok(())

@@ -1,10 +1,12 @@
 use nom::bytes::complete::{tag, take_while1, take_while_m_n};
 use nom::combinator::map_res;
+use nom::error::{context, VerboseError};
 use nom::multi::{many_m_n, separated_list1};
 use nom::sequence::{terminated, tuple};
 use nom::IResult;
 
 pub(crate) type N = usize;
+pub(crate) type Res<T, U> = IResult<T, U, VerboseError<T>>;
 
 #[derive(Debug, Eq, PartialEq)]
 pub(crate) struct Header {
@@ -33,19 +35,19 @@ pub(crate) struct Output {
     pub waves: Vec<Vec<N>>,
 }
 
-fn number(input: &str) -> IResult<&str, &str> {
-    take_while1(|c: char| c.is_digit(10))(input)
+fn number(input: &str) -> Res<&str, &str> {
+    context("number", take_while1(|c: char| c.is_digit(10)))(input)
 }
 
-fn single_space(input: &str) -> IResult<&str, &str> {
+fn single_space(input: &str) -> Res<&str, &str> {
     take_while_m_n(1, 1, |c: char| c == ' ')(input)
 }
 
-fn positive_number(input: &str) -> IResult<&str, N> {
+fn positive_number(input: &str) -> Res<&str, N> {
     map_res(number, |out| N::from_str_radix(out, 10))(input)
 }
 
-fn header(input: &str) -> IResult<&str, Header> {
+fn header(input: &str) -> Res<&str, Header> {
     // tuple takes as argument a tuple of parsers and will return
     // a tuple of their results
     let (i, (units, _, towers, _, waves, _, budget)) = tuple((
@@ -69,28 +71,26 @@ fn header(input: &str) -> IResult<&str, Header> {
     ))
 }
 
-fn header_line(s: &str) -> IResult<&str, Header> {
-    terminated(header, tag("\n"))(s)
+fn header_line(s: &str) -> Res<&str, Header> {
+    context("header", terminated(header, tag("\n")))(s)
 }
 
-fn number_list(s: &str) -> IResult<&str, Vec<N>> {
+fn number_list(s: &str) -> Res<&str, Vec<N>> {
     separated_list1(single_space, positive_number)(s)
 }
 
-fn number_list_line(s: &str) -> IResult<&str, Vec<N>> {
+fn number_list_line(s: &str) -> Res<&str, Vec<N>> {
     terminated(number_list, tag("\n"))(s)
 }
 
-fn parse_input_body<'a>(s: &'a str, header: &Header) -> IResult<&'a str, Body> {
-    println!("parsing hits");
-    let (out, hits) = many_m_n(header.towers, header.towers, number_list_line)(s)?;
-    println!("parsing costs");
-    let (out, costs) = number_list_line(out)?;
-    println!("parsing bonus");
-    let (out, bonus) = number_list_line(out)?;
-    println!("parsing waves");
-    let (out, waves) = separated_list1(tag("\n"), number_list)(out)?;
-    println!("done parsing waves");
+fn parse_input_body<'a>(s: &'a str, header: &Header) -> Res<&'a str, Body> {
+    let (out, hits) = context(
+        "hits",
+        many_m_n(header.towers, header.towers, number_list_line),
+    )(s)?;
+    let (out, costs) = context("costs", number_list_line)(out)?;
+    let (out, bonus) = context("bonus", number_list_line)(out)?;
+    let (out, waves) = context("waves", separated_list1(tag("\n"), number_list))(out)?;
     Ok((
         out,
         Body {
@@ -102,18 +102,14 @@ fn parse_input_body<'a>(s: &'a str, header: &Header) -> IResult<&'a str, Body> {
     ))
 }
 
-pub(crate) fn parse_input(s: &str) -> IResult<&str, Input> {
-    println!("parsing header");
+pub(crate) fn parse_input(s: &str) -> Res<&str, Input> {
     let (out, header) = header_line(s)?;
-    println!("header: {:?}", header);
-    println!("parsing input body");
     let (out, body) = parse_input_body(out, &header)?;
-    println!("done parsing input body");
     Ok((out, Input { header, body }))
 }
 
-pub(crate) fn parse_output(s: &str) -> IResult<&str, Output> {
-    let (out, waves) = separated_list1(tag("\n"), number_list)(s)?;
+pub(crate) fn parse_output(s: &str) -> Res<&str, Output> {
+    let (out, waves) = context("output", separated_list1(tag("\n"), number_list))(s)?;
     Ok((out, Output { waves }))
 }
 
@@ -124,8 +120,6 @@ mod tests {
         header, number, number_list, number_list_line, parse_input, parse_input_body, parse_output,
         positive_number, Body, Header, Input, Output,
     };
-    use nom::error::{Error, ErrorKind};
-    use nom::Err;
 
     #[test]
     fn test_number_1() {
@@ -142,13 +136,7 @@ mod tests {
     #[test]
     fn test_number_ko() {
         let r = number("not a number");
-        assert_eq!(
-            r,
-            Err(Err::Error(Error::new(
-                "not a number",
-                ErrorKind::TakeWhile1
-            )))
-        )
+        assert!(r.is_err())
     }
 
     #[test]
