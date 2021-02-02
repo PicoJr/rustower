@@ -1,5 +1,5 @@
 from data import Input, Output
-from parser import parse, as_lines, dump
+from parser import parse, output_as_lines, dump_output
 
 
 def evaluate(tower: int, wave: int, input_data: Input):
@@ -33,5 +33,5 @@ if __name__ == "__main__":
     print(input_data)
     output_data = solve(input_data)
     print(output_data)
-    print(as_lines(output_data))
-    dump("/tmp/out.txt", output_data)
+    print(output_as_lines(output_data))
+    dump_output("/tmp/out.txt", output_data)

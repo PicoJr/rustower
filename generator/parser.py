@@ -33,15 +33,28 @@ def parse(input_path: str) -> Input:
         return parse_file(input_file)
 
 
-def as_lines(output: Output) -> List[str]:
+def output_as_lines(output: Output) -> List[str]:
     return [" ".join(str(tower) for tower in towers) for towers in output.towers]
 
 
-def dump(output_path: str, output: Output):
+def dump_output(output_path: str, output: Output):
     with open(output_path, "w+") as output_file:
-        lines = as_lines(output)
+        lines = output_as_lines(output)
         for line in lines:
             output_file.write(line + "\n")
+
+
+def dump_input(input_path: str, input_data: Input):
+    with open(input_path, "w+") as input_file:
+        h = input_data.header
+        header = f"{h.units} {h.towers} {h.waves} {h.budget}\n"
+        costs = " ".join(str(c) for c in input_data.body.costs) + "\n"
+        bonus = " ".join(str(b) for b in input_data.body.bonus) + "\n"
+        waves = [
+            " ".join(str(u) for u in units) + "\n" for units in input_data.body.waves
+        ]
+        lines = [header, costs, bonus] + waves
+        input_file.writelines(lines)
 
 
 if __name__ == "__main__":
