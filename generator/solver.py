@@ -29,9 +29,6 @@ def solve(input_data: Input) -> Output:
 
 
 if __name__ == "__main__":
-    input_data = parse("../example/input_example.txt")
-    print(input_data)
+    input_data = parse("./input_0.txt")
     output_data = solve(input_data)
-    print(output_data)
-    print(output_as_lines(output_data))
-    dump_output("/tmp/out.txt", output_data)
+    dump_output("./out_0.txt", output_data)

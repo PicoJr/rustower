@@ -48,12 +48,16 @@ def dump_input(input_path: str, input_data: Input):
     with open(input_path, "w+") as input_file:
         h = input_data.header
         header = f"{h.units} {h.towers} {h.waves} {h.budget}\n"
+        hits = [
+            " ".join(str(h) for h in tower_hits) + "\n"
+            for tower_hits in input_data.body.hits
+        ]
         costs = " ".join(str(c) for c in input_data.body.costs) + "\n"
         bonus = " ".join(str(b) for b in input_data.body.bonus) + "\n"
         waves = [
             " ".join(str(u) for u in units) + "\n" for units in input_data.body.waves
         ]
-        lines = [header, costs, bonus] + waves
+        lines = [header] + hits + [costs, bonus] + waves
         input_file.writelines(lines)
 
 
