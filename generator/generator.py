@@ -5,9 +5,6 @@ from typing import List
 from data import Input, InputHeader, InputBody
 from parser import dump_input
 
-SMALL_BONUS_MULTIPLIER_RANGE = (1, 2)
-BIG_BONUS_MULTIPLIER_RANGE = (2, 4)
-
 
 @dataclass
 class RandomParameters:
@@ -45,8 +42,32 @@ def random_waves_bonus(
     return [random_wave_bonus(sum(wave), bonus_range) for wave in waves]
 
 
-def random_hits(towers: int, hits_range: (int, int)) -> List[List[int]]:
-    return [sparse_random_list(towers, hits_range) for _tower in range(towers)]
+def random_hits(towers: int, units: int, hits_range: (int, int)) -> List[List[int]]:
+    hits = [sparse_random_list(units, hits_range) for _tower in range(towers)]
+    return hits
+
+
+def vulnerabilities(units: int, hits: List[List[int]]) -> List[bool]:
+    vulnerable_units = [
+        False
+    ] * units  # True means a tower is effective against this unit
+    for tower_hits in hits:
+        for unit, hit in enumerate(tower_hits):
+            if hit > 0:
+                vulnerable_units[unit] = True
+        if all(vulnerable_units):
+            return vulnerable_units
+    return vulnerable_units
+
+
+def patch_vulnerabilities(
+    towers: int, hits: List[List[int]], vulnerable_units: List[bool]
+) -> List[List[int]]:
+    for unit, vuln in enumerate(vulnerable_units):
+        random_tower = randint(0, towers)
+        if not vuln:
+            hits[random_tower][unit] = 1
+    return hits
 
 
 def random_wave(units: int, units_range: (int, int)) -> List[int]:
@@ -88,7 +109,14 @@ def create_input(random_parameters: RandomParameters) -> Input:
     )
     rdm_costs = random_costs(random_parameters.towers)
     rdm_bonus = random_waves_bonus(rdm_waves, random_parameters.bonus_range)
-    rdm_hits = random_hits(random_parameters.towers, random_parameters.hits_range)
+    rdm_hits = random_hits(
+        random_parameters.towers, random_parameters.units, random_parameters.hits_range
+    )
+    vulnerable_units = vulnerabilities(random_parameters.units, rdm_hits)
+    # make sure all units can be stopped by at least one tower
+    patch_vulnerabilities(random_parameters.towers, rdm_hits, vulnerable_units)
+    vulnerable_units = vulnerabilities(random_parameters.units, rdm_hits)
+    assert all(vulnerable_units)
 
     estimated_budget = estimate_budget(rdm_hits, rdm_costs, rdm_waves)
     print(f"estimated budget: {estimated_budget}")
@@ -109,15 +137,51 @@ def create_input(random_parameters: RandomParameters) -> Input:
 
 
 if __name__ == "__main__":
-    # small size, easy to parse and reason about
-    input_1 = RandomParameters(2, 2, 2, (1, 2), (1, 2), (1, 5), (1, 5))
-    input_2 = RandomParameters(20, 20, 20, (1, 2), (1, 2), (1, 10), (1, 5))
-    # big bonus, really worth it
-    input_3 = RandomParameters(30, 30, 30, (1, 2), (2, 4), (1, 10), (1, 10))
-    # many towers, should break unoptimized tower selection heuristics
-    input_4 = RandomParameters(10, 1000, 100, (1, 2), (1, 2), (1, 20), (1, 10))
-    # many everything, small budget, small bonus, bonus are not worth it
-    input_5 = RandomParameters(500, 500, 500, (0.5, 1), (0.2, 0.5), (1, 10), (1, 10))
+    input_1 = RandomParameters(
+        units=2,  # small
+        towers=2,  # small
+        waves=2,  # small
+        budget_range=(1, 2),
+        bonus_range=(1, 2),
+        units_range=(1, 5),
+        hits_range=(1, 5),
+    )
+    input_2 = RandomParameters(
+        units=20,
+        towers=20,
+        waves=20,
+        budget_range=(1, 2),
+        bonus_range=(1, 2),
+        units_range=(1, 10),
+        hits_range=(1, 5),
+    )
+    input_3 = RandomParameters(
+        units=30,
+        towers=30,
+        waves=30,
+        budget_range=(1, 2),
+        bonus_range=(2, 4),  # big bonus, really worth it
+        units_range=(1, 10),
+        hits_range=(1, 10),
+    )
+    input_4 = RandomParameters(
+        units=10,
+        towers=1000,  # many towers, should break unoptimized tower selection heuristics
+        waves=100,
+        budget_range=(1, 2),
+        bonus_range=(1, 2),
+        units_range=(1, 20),
+        hits_range=(1, 10),
+    )
+    input_5 = RandomParameters(
+        units=500,  # many units
+        towers=500,  # many towers
+        waves=500,  # many waves
+        budget_range=(0.5, 1),  # small budget
+        bonus_range=(0.2, 0.5),  # small bonus, not worth it
+        units_range=(1, 10),
+        hits_range=(1, 10),
+    )
     for i, parameter in enumerate([input_1, input_2, input_3, input_4, input_5]):
         rdm_input = create_input(parameter)
         print(rdm_input.header)

@@ -1,5 +1,5 @@
 from data import Input, Output
-from parser import parse, output_as_lines, dump_output
+from parser import parse, dump_output
 
 
 def evaluate(tower: int, wave: int, input_data: Input):
@@ -29,6 +29,7 @@ def solve(input_data: Input) -> Output:
 
 
 if __name__ == "__main__":
-    input_data = parse("./input_0.txt")
-    output_data = solve(input_data)
-    dump_output("./out_0.txt", output_data)
+    for i in range(5):
+        input_data = parse(f"./input_{i}.txt")
+        output_data = solve(input_data)
+        dump_output(f"./out_{i}.txt", output_data)
