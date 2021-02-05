@@ -1,15 +1,27 @@
+![logo](./res/logo.png)
+
+logo built using assets provided by https://kenney.nl/assets/tower-defense
+
 # Rustower
 
 This repository contains:
-* The problem statement of a challenge inspired by [Google Hashcode](https://hashcode.withgoogle.com/).
-* Input files
-* Output validator and score-calculator reference implementation (in Rust)
+* The problem statement of a challenge inspired by [Google Hashcode](https://hashcode.withgoogle.com/)
+* Input/Output validator and score-calculator reference implementation (in [Rust](https://www.rust-lang.org/))
+* [Input files](./input)
+* Simple [solver](generator/solver.py) and [input parser/output dumper](generator/parser.py) (Python)
+* [Code for generating input files](generator/generator.py).
+
+**Input Files are still WIP**
 
 ## Problem Statement
 
 Compute the best towers to build in order to defend against waves of units given a budget.
 
 ### Input File
+
+> Note: lines starting with '#' are comments, input files do not contain comments
+>
+> All numbers are integers
 
 ```
 UNITS TOWERS WAVES BUDGET
@@ -35,7 +47,20 @@ N_1 N_2 ... N_U
 ...
 ```
 
+#### Constraints
+
+* 0 < UNITS <= 10000
+* 0 < TOWERS <= 10000
+* 0 < WAVES <= 10000
+* 0 < BUDGET <= 10000
+
 ### Solution/Output File
+
+> Note: lines starting with '#' are comments, output files do not contain comments
+>
+> Output file must contain exactly `WAVES` lines.
+>
+> Each line must contain exactly `TOWERS` integers.
 
 ```
 # wave 1 towers of each type
@@ -61,7 +86,7 @@ For each type of unit, compute how many units of this type towers can stop:
 The number of units of type `i` stopped is sum of `N_k * HIT_k_i` for k in `0..T-1` where
 
 * `N_k` is the number of towers of type `k`.
-* `HIT_k_i` is the number of units of type `i` a single tower of type `k` can stop/
+* `HIT_k_i` is the number of units of type `i` a single tower of type `k` can stop.
 
 ### Example
 
@@ -125,4 +150,10 @@ example:
 
 ```
 cargo run --release -- example/input_example.txt example/output_example.txt
+```
+
+example output:
+
+```
+score: 9
 ```

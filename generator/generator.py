@@ -185,4 +185,4 @@ if __name__ == "__main__":
     for i, parameter in enumerate([input_1, input_2, input_3, input_4, input_5]):
         rdm_input = create_input(parameter)
         print(rdm_input.header)
-        dump_input(f"input_{i}.txt", rdm_input)
+        dump_input(f"../input/input_{i}.txt", rdm_input)

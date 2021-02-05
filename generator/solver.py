@@ -30,6 +30,6 @@ def solve(input_data: Input) -> Output:
 
 if __name__ == "__main__":
     for i in range(5):
-        input_data = parse(f"./input_{i}.txt")
+        input_data = parse(f"../input/input_{i}.txt")
         output_data = solve(input_data)
         dump_output(f"./out_{i}.txt", output_data)
