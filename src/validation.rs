@@ -3,41 +3,45 @@ use crate::parser::{Input, Output, N};
 use thiserror::Error;
 
 #[derive(Error, Debug, Eq, PartialEq)]
-pub(crate) enum OutputValidationError {
+pub(crate) enum InvalidOutputError {
     #[error("found `{0}` waves but expected `{1}`")]
-    InvalidWaveNumber(N, N),
+    WaveNumber(N, N),
     #[error("wave: `{0}` found `{1}` towers but expected `{2}`")]
-    InvalidWaveTowers(usize, N, N),
+    WaveTowers(usize, N, N),
     #[error("total towers cost `{0}` > budget: `{1}`")]
-    OverBudget(N, N),
+    Budget(N, N),
 }
 
 #[derive(Error, Debug, Eq, PartialEq)]
-pub(crate) enum InputValidationError {
+pub(crate) enum InvalidInputError {
     #[error("found `{0}` bonus but expected `{1}`")]
-    InvalidBonus(N, N),
+    Bonus(N, N),
     #[error("found `{0}` cost but expected `{1}`")]
-    InvalidCost(N, N),
+    Cost(N, N),
     #[error("found `{0}` waves but expected `{1}`")]
-    InvalidWaves(N, N),
+    Waves(N, N),
+    #[error("wave: `{0}` found `{1}` units but expected `{2}`")]
+    WaveUnits(usize, N, N),
     #[error("found `{0}` hits but expected `{1}`")]
-    InvalidHits(N, N),
+    Hits(N, N),
+    #[error("tower: `{0}` found `{1}` units but expected `{2}`")]
+    TowerHits(usize, N, N),
 }
 
 pub(crate) fn validate_output(
     input: &Input,
     output: &Output,
-) -> Result<(), Vec<OutputValidationError>> {
+) -> Result<(), Vec<InvalidOutputError>> {
     let mut errors = vec![];
     if output.waves.len() != input.header.waves {
-        errors.push(OutputValidationError::InvalidWaveNumber(
+        errors.push(InvalidOutputError::WaveNumber(
             output.waves.len(),
             input.header.waves,
         ))
     }
     for (line, wave_towers) in output.waves.iter().enumerate() {
         if wave_towers.len() != input.header.towers {
-            errors.push(OutputValidationError::InvalidWaveTowers(
+            errors.push(InvalidOutputError::WaveTowers(
                 line,
                 wave_towers.len(),
                 input.header.towers,
@@ -53,10 +57,7 @@ pub(crate) fn validate_output(
         }
     }
     if total_cost > input.header.budget {
-        errors.push(OutputValidationError::OverBudget(
-            total_cost,
-            input.header.budget,
-        ))
+        errors.push(InvalidOutputError::Budget(total_cost, input.header.budget))
     }
     if errors.is_empty() {
         Ok(())
@@ -65,31 +66,49 @@ pub(crate) fn validate_output(
     }
 }
 
-pub(crate) fn validate_input(input: &Input) -> Result<(), Vec<InputValidationError>> {
+pub(crate) fn validate_input(input: &Input) -> Result<(), Vec<InvalidInputError>> {
     let mut errors = vec![];
     if input.body.bonus.len() != input.header.waves {
-        errors.push(InputValidationError::InvalidBonus(
+        errors.push(InvalidInputError::Bonus(
             input.body.bonus.len(),
             input.header.waves,
         ))
     }
     if input.body.costs.len() != input.header.towers {
-        errors.push(InputValidationError::InvalidCost(
+        errors.push(InvalidInputError::Cost(
             input.body.costs.len(),
             input.header.towers,
         ))
     }
     if input.body.waves.len() != input.header.waves {
-        errors.push(InputValidationError::InvalidWaves(
+        errors.push(InvalidInputError::Waves(
             input.body.waves.len(),
             input.header.waves,
         ))
     }
+    for (wave, wave_units) in input.body.waves.iter().enumerate() {
+        if wave_units.len() != input.header.units {
+            errors.push(InvalidInputError::WaveUnits(
+                wave,
+                wave_units.len(),
+                input.header.units,
+            ))
+        }
+    }
     if input.body.hits.len() != input.header.towers {
-        errors.push(InputValidationError::InvalidHits(
+        errors.push(InvalidInputError::Hits(
             input.body.hits.len(),
             input.header.towers,
         ))
+    }
+    for (tower, tower_hits) in input.body.hits.iter().enumerate() {
+        if tower_hits.len() != input.header.units {
+            errors.push(InvalidInputError::TowerHits(
+                tower,
+                tower_hits.len(),
+                input.header.units,
+            ))
+        }
     }
     if errors.is_empty() {
         Ok(())
