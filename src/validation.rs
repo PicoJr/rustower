@@ -12,6 +12,18 @@ pub(crate) enum OutputValidationError {
     OverBudget(N, N),
 }
 
+#[derive(Error, Debug, Eq, PartialEq)]
+pub(crate) enum InputValidationError {
+    #[error("found `{0}` bonus but expected `{1}`")]
+    InvalidBonus(N, N),
+    #[error("found `{0}` cost but expected `{1}`")]
+    InvalidCost(N, N),
+    #[error("found `{0}` waves but expected `{1}`")]
+    InvalidWaves(N, N),
+    #[error("found `{0}` hits but expected `{1}`")]
+    InvalidHits(N, N),
+}
+
 pub(crate) fn validate_output(
     input: &Input,
     output: &Output,
@@ -44,6 +56,39 @@ pub(crate) fn validate_output(
         errors.push(OutputValidationError::OverBudget(
             total_cost,
             input.header.budget,
+        ))
+    }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
+}
+
+pub(crate) fn validate_input(input: &Input) -> Result<(), Vec<InputValidationError>> {
+    let mut errors = vec![];
+    if input.body.bonus.len() != input.header.waves {
+        errors.push(InputValidationError::InvalidBonus(
+            input.body.bonus.len(),
+            input.header.waves,
+        ))
+    }
+    if input.body.costs.len() != input.header.towers {
+        errors.push(InputValidationError::InvalidCost(
+            input.body.costs.len(),
+            input.header.towers,
+        ))
+    }
+    if input.body.waves.len() != input.header.waves {
+        errors.push(InputValidationError::InvalidWaves(
+            input.body.waves.len(),
+            input.header.waves,
+        ))
+    }
+    if input.body.hits.len() != input.header.towers {
+        errors.push(InputValidationError::InvalidHits(
+            input.body.hits.len(),
+            input.header.towers,
         ))
     }
     if errors.is_empty() {

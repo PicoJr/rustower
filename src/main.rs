@@ -4,7 +4,7 @@ mod validation;
 
 use crate::parser::{parse_input, parse_output};
 use crate::score::score;
-use crate::validation::validate_output;
+use crate::validation::{validate_input, validate_output};
 
 extern crate clap;
 extern crate nom;
@@ -42,17 +42,34 @@ fn main() -> anyhow::Result<()> {
     let input_parsing = parse_input(&input_data);
     let output_parsing = parse_output(&output_data);
     match (&input_parsing, &output_parsing) {
-        (Ok((_, input)), Ok((_, output))) => match validate_output(&input, &output) {
-            Err(errors) => {
-                for error in errors {
-                    eprintln!("error: {}", error)
+        (Ok((_, input)), Ok((_, output))) => {
+            let input_validation = validate_input(&input);
+            let output_validation = validate_output(&input, &output);
+            match (input_validation, output_validation) {
+                (Ok(()), Ok(())) => {
+                    let score = score(&input, &output);
+                    println!("score: {}", score)
+                }
+                (Err(input_errors), Err(output_errors)) => {
+                    for error in input_errors {
+                        eprintln!("input error: {}", error)
+                    }
+                    for error in output_errors {
+                        eprintln!("input error: {}", error)
+                    }
+                }
+                (Err(input_errors), _) => {
+                    for error in input_errors {
+                        eprintln!("input error: {}", error)
+                    }
+                }
+                (_, Err(output_errors)) => {
+                    for error in output_errors {
+                        eprintln!("input error: {}", error)
+                    }
                 }
             }
-            Ok(()) => {
-                let score = score(&input, &output);
-                println!("score: {}", score)
-            }
-        },
+        }
         _ => {
             if let Err(nom::Err::Error(e)) = input_parsing {
                 eprintln!("{}", convert_error(input_data.as_str(), e))
